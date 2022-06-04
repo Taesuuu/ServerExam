@@ -1,0 +1,15 @@
+D:\Git\ServerExam\bin\Debug\net6.0\ServerExam.exe
+D:\Git\ServerExam\bin\Debug\net6.0\ServerExam.deps.json
+D:\Git\ServerExam\bin\Debug\net6.0\ServerExam.runtimeconfig.json
+D:\Git\ServerExam\bin\Debug\net6.0\ServerExam.dll
+D:\Git\ServerExam\bin\Debug\net6.0\ServerExam.pdb
+D:\Git\ServerExam\obj\Debug\net6.0\ServerExam.csproj.AssemblyReference.cache
+D:\Git\ServerExam\obj\Debug\net6.0\ServerExam.GeneratedMSBuildEditorConfig.editorconfig
+D:\Git\ServerExam\obj\Debug\net6.0\ServerExam.AssemblyInfoInputs.cache
+D:\Git\ServerExam\obj\Debug\net6.0\ServerExam.AssemblyInfo.cs
+D:\Git\ServerExam\obj\Debug\net6.0\ServerExam.csproj.CoreCompileInputs.cache
+D:\Git\ServerExam\obj\Debug\net6.0\ServerExam.dll
+D:\Git\ServerExam\obj\Debug\net6.0\refint\ServerExam.dll
+D:\Git\ServerExam\obj\Debug\net6.0\ServerExam.pdb
+D:\Git\ServerExam\obj\Debug\net6.0\ServerExam.genruntimeconfig.cache
+D:\Git\ServerExam\obj\Debug\net6.0\ref\ServerExam.dll
