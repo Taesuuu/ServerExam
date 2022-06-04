@@ -1,0 +1,105 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using System.Reflection;
+using System.IO;
+
+namespace CoolioServerWeb
+{
+    class Program
+    {
+        public static HttpListener listener = new HttpListener();
+        public static string startUpPath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+        public static List<FileName> virtualPaths = new List<FileName>();
+        public static void Main(string[] args)
+        {
+            listener.Start();
+            load();
+            Thread t = new Thread(new ThreadStart(clientListener));
+            t.Start();
+            Console.Write(">");
+            while (true)
+            {
+                string s = Console.ReadLine();
+                Console.Write(">");
+            }
+        }
+        public static void load()
+        {
+            StreamReader sr = new StreamReader(startUpPath + "\\site.cfg");
+            string s = sr.ReadLine();
+            while (s != null)
+            {
+                if (s.StartsWith("Port: "))
+                {
+                    s = s.Replace("Port: ", "");
+                    listener.Prefixes.Add(s);
+                }
+                s = sr.ReadLine();
+            }
+        }
+        public static void clientListener()
+        {
+            while (true)
+            {
+                try
+                {
+                    HttpListenerContext request = listener.GetContext();
+                    ThreadPool.QueueUserWorkItem(processRequest, request);
+                }
+                catch (Exception e) { Console.WriteLine(e.Message); Console.Write(">"); }
+            }
+        }
+        public static void processRequest(object listenerContext)
+        {
+            try
+            {
+                var context = (HttpListenerContext)listenerContext;
+                string filename = Path.GetFileName(context.Request.RawUrl);
+
+
+                string path = "";
+                filename = filename.ToLower();
+                if (filename.EndsWith(".png") || filename.EndsWith(".jpg") || filename.EndsWith(".gif"))
+                {
+                    path = startUpPath + "\\webroot\\imgs\\" + filename;
+                }
+                else if (filename.EndsWith(".htm") || filename.EndsWith(".html") || filename.EndsWith(".js") || filename.EndsWith(".css"))
+                {
+                    path = startUpPath + "\\webroot\\" + filename;
+                }
+                else if (filename == "")
+                {
+                    path = startUpPath + "\\webroot\\index.html";
+                }
+                
+                byte[] msg;
+                if (!File.Exists(path))
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                    msg = File.ReadAllBytes(startUpPath + "\\webroot\\error.html");
+                }
+                else
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.OK;
+                    msg = File.ReadAllBytes(path);
+                }
+                context.Response.ContentLength64 = msg.Length;
+                using (Stream s = context.Response.OutputStream)
+                    s.Write(msg, 0, msg.Length);
+            }
+            catch
+            {
+
+            }
+        }
+    }
+    class FileName
+    {
+        public string absolutePath = "";
+        public string externalName = "";
+    }
+}
