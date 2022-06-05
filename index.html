@@ -4,15 +4,49 @@
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://cdn.jsdelivr.net/npm/vue@2.5.2/dist/vue.js"></script>
         <title>ServerExam</title>
-        <script>
-            function test() {
-                console.log("11");
+        <style>
+            @font-face {
+                font-family: 'IM_Hyemin-Regular';
+                src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2106@1.1/IM_Hyemin-Regular.woff2') format('woff');
+                font-weight: normal;
+                font-style: normal;
             }
-            
-        </script>
+        </style>
+        
     </head>
     <body>
-        <h1 onclick="test()">서버에서 보내는 html파일</h1>
+        <div id="mainDiv">
+            <h1 style="font-family: IM_Hyemin-Regular;" onclick="test()">서버에서 보내는 html파일</h1>
+            <h1>{{test}}</h1>
+        </div>
+        
+
+        <script>
+            const wb = new WebSocket('ws://localhost:3000/');
+            wb.addEventListener('open', function (event) {
+                wb.send('Hello Server!');
+                console.log("소켓연결");
+            });
+            function test() {
+                console.log("11");
+                wb.send("1212");
+            }
+            
+            var app = new Vue({
+                el : "#mainDiv",
+                data : {
+                    test : "정태수",
+                },
+                created : function() {
+                    wb.send('Hello Server!');
+                    console.log("소켓연결");
+                    
+                }
+            });
+
+            
+        </script>
     </body>
 </html>

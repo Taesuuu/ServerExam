@@ -1,51 +1,16 @@
-﻿// using System.Net;
-// using System.Text;
-// using System.IO;
-// using System.Net.Sockets;
-// internal class Program
-// {
-//     private static void Main(string[] args)
-//     {
-//         HttpListener listener = new HttpListener();
-//         listener.Prefixes.Add("http://127.0.0.1:3000/Login/");
-//         listener.Start();
-
-//         Console.WriteLine("Listening...");
-
-//         HttpListenerContext context = listener.GetContext();
-//         HttpListenerRequest request = context.Request;
-//         HttpListenerResponse response = context.Response;
-        
-//        //FileStream fileStream = File.Open("/index.html", FileMode.Open);
-//         try {
-            
-//             string file = File.ReadAllText("@/index.html");
-//             // StreamReader sr = new StreamReader("/index.html");
-//             // FileStream file = File.ReadAllBytes("@/index.html");
-//             Console.WriteLine(file);
-//             byte[] buffer = Encoding.UTF8.GetBytes(file);
-//             response.OutputStream.Write(buffer, 0, buffer.Length);
-//             Console.WriteLine("성공");
-//         }
-//         catch {
-//             Console.WriteLine("실패");
-//             response.OutputStream.Close();
-//             listener.Stop();
-//         }
-       
-        
-//     }
-// }
+﻿
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 
-namespace DumpHttpRequests
+namespace Servereaxm
 {
     internal class Program
     {
+        static HttpListener listener = new HttpListener();
         private static void Main(string[] args)
         {
             if (!HttpListener.IsSupported)
@@ -57,7 +22,7 @@ namespace DumpHttpRequests
             var prefixes = new List<string>() { "http://*:3000/" };
 
             // Create a listener.
-            HttpListener listener = new HttpListener();
+            
             // Add the prefixes.
             foreach (string s in prefixes)
             {
@@ -80,11 +45,14 @@ namespace DumpHttpRequests
                         documentContents = readStream.ReadToEnd();
                     }
                 }
-                Console.WriteLine($"Recived request for {request.Url}");
-                Console.WriteLine(documentContents);
+                Console.WriteLine($"Recived request for {request.Url}\n");
+                //Console.WriteLine(documentContents);
 
                 // Obtain a response object.
                 HttpListenerResponse response = context.Response;
+                
+                listener.BeginGetContext(onAcceptReader, response);
+                //Console.WriteLine(response.OutputStream.ReadByte);
                 // Construct a response.
                 // string responseString = "<HTML><BODY> Hello world!</BODY></HTML>";
                 string file = "index.html";
@@ -108,8 +76,18 @@ namespace DumpHttpRequests
                 output.Write(maxresponse_complete, 0, maxresponse_complete.Length);
                 // You must close the output stream.
                 output.Close();
+                
+                response.Close();
             }
             listener.Stop();
+        }
+
+        public static void onAcceptReader(IAsyncResult ar) {
+            int result = listener.GetContext().Response.OutputStream.EndRead(ar);
+            byte[] maxresponse_complete = new byte[result];
+            string newMessage = Encoding.UTF8.GetString(maxresponse_complete, 0 , result);
+            Console.WriteLine(newMessage);
+            Console.Write("왔네");
         }
     }
 }
@@ -241,5 +219,45 @@ namespace DumpHttpRequests
 //         }
 //         HttpClient client = new HttpClient();
 
+//     }
+// }
+
+
+// using System.Net;
+// using System.Text;
+// using System.IO;
+// using System.Net.Sockets;
+// internal class Program
+// {
+//     private static void Main(string[] args)
+//     {
+//         HttpListener listener = new HttpListener();
+//         listener.Prefixes.Add("http://127.0.0.1:3000/Login/");
+//         listener.Start();
+
+//         Console.WriteLine("Listening...");
+
+//         HttpListenerContext context = listener.GetContext();
+//         HttpListenerRequest request = context.Request;
+//         HttpListenerResponse response = context.Response;
+        
+//        //FileStream fileStream = File.Open("/index.html", FileMode.Open);
+//         try {
+            
+//             string file = File.ReadAllText("@/index.html");
+//             // StreamReader sr = new StreamReader("/index.html");
+//             // FileStream file = File.ReadAllBytes("@/index.html");
+//             Console.WriteLine(file);
+//             byte[] buffer = Encoding.UTF8.GetBytes(file);
+//             response.OutputStream.Write(buffer, 0, buffer.Length);
+//             Console.WriteLine("성공");
+//         }
+//         catch {
+//             Console.WriteLine("실패");
+//             response.OutputStream.Close();
+//             listener.Stop();
+//         }
+       
+        
 //     }
 // }
