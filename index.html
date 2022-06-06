@@ -25,13 +25,12 @@
 
         <script>
             const wb = new WebSocket('ws://localhost:3000/');
-            wb.addEventListener('open', function (event) {
-                wb.send('Hello Server!');
-                console.log("소켓연결");
-            });
+            wb.onopen = function(event) {
+                wb.send(JSON.stringify("서버에 연결"));
+            }
             function test() {
                 console.log("11");
-                wb.send("1212");
+                wb.send(JSON.stringify("1212"));
             }
             
             var app = new Vue({
@@ -40,7 +39,7 @@
                     test : "정태수",
                 },
                 created : function() {
-                    wb.send('Hello Server!');
+                    wb.send(JSON.stringify('Hello Server!'));
                     console.log("소켓연결");
                     
                 }
