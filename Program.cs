@@ -1,74 +1,59 @@
-﻿//****
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
 using System.Text;
+using System.Net;
+using System.Threading.Tasks;
 
-//클래스를 하나 만들어서 클라이언트 이름과 스트림을 저장하도록 해야하나? 하나 하나 객체에다가
-// 그렇게 해서 이 모든 객체를 관리하는걸 main에 만들어서 요청이 오는걸 확인? 
-
-
-namespace Servereaxm
+namespace HttpListenerExample
 {
-    internal class Program
+    class HttpServer
     {
-        static List<HttpListenerContext> userList = new List<HttpListenerContext>();
-        static HttpListener listener = new HttpListener();
-        private static void Main(string[] args)
+        public static HttpListener listener;
+        public static string url = "http://localhost:3000/";
+        public static int pageViews = 0;
+        public static int requestCount = 1;
+
+        public static async Task HandleIncomingConnections()
         {
-            if (!HttpListener.IsSupported)
-            {
-                Console.WriteLine("Windows XP SP2 or Server 2003 is required to use the HttpListener class.");
-                return;
-            }
-            // URI prefixes are required,
-            var prefixes = new List<string>() { "http://*:3000/" };
+            bool runServer = true;
 
-            // Create a listener.
-            
-            // Add the prefixes.
-            foreach (string s in prefixes)
+            while (runServer)
             {
-                listener.Prefixes.Add(s);
-            }
-            listener.Start();
+               
+                HttpListenerContext ctx = await listener.GetContextAsync();
 
-            Console.WriteLine("Listening...");
-            while (true)
-            {
-                // Note: The GetContext method blocks while waiting for a request.
-                HttpListenerContext context = listener.GetContext();
                 
-                Console.WriteLine("접속한 유저");
-                //유저 연결 저장
-                userList.Add(context);
+                HttpListenerRequest req = ctx.Request;
+                HttpListenerResponse resp = ctx.Response;
 
-                for(int i = 0; i < userList.Count; i++){
-                    Console.WriteLine(userList[i]);
-                }
+               
+                Console.WriteLine("Request #: " + requestCount++);
+                Console.WriteLine(req.Url.ToString());
+                Console.WriteLine(req.HttpMethod);
+                Console.WriteLine(req.UserHostName);
+                Console.WriteLine(req.UserAgent);
+                Console.WriteLine();
 
-                HttpListenerRequest request = context.Request;
-
-                string documentContents;
-                using (Stream receiveStream = request.InputStream)
+                
+                if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/shutdown"))
                 {
-                    using (StreamReader readStream = new StreamReader(receiveStream, Encoding.UTF8))
-                    {
-                        documentContents = readStream.ReadToEnd();
-                    }
+                    Console.WriteLine("Shutdown requested");
+                    runServer = false;
                 }
-                Console.WriteLine($"Recived request for {request.Url}\n");
-                Console.WriteLine(documentContents);
 
-                // Obtain a response object.
-                HttpListenerResponse response = context.Response;
-                
-                listener.BeginGetContext(onAcceptReader, request);
-                //Console.WriteLine(response.OutputStream.ReadByte);
-                // Construct a response.
-                // string responseString = "<HTML><BODY> Hello world!</BODY></HTML>";
+                if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/msg"))
+                {
+                    Console.WriteLine(req.UserHostName + "한테 메시지 왔다");
+                    string newMessage = null;
+                    StreamReader reader = new StreamReader(req.InputStream, req.ContentEncoding);
+                    newMessage = await reader.ReadToEndAsync();
+                    
+                    Console.WriteLine(newMessage);
+                }
+               
+                // if ((req.HttpMethod == "POST")&& (req.Url.AbsolutePath != "/favicon.ico")){
+                //     pageViews += 1;
+                // }
                 string file = "index.html";
                 FileStream readIn = new FileStream(file, FileMode.Open, FileAccess.Read);
                 byte[] buffer = new byte[1024 * 1000];
@@ -82,28 +67,139 @@ namespace Servereaxm
                 readIn.Close();
                 byte[] maxresponse_complete = new byte[total];
                 System.Buffer.BlockCopy(buffer, 0, maxresponse_complete, 0, total);
-                //byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
-                // Get a response stream and write the response to it.
-                //response.ContentType = "/index.html";
-                response.ContentLength64 = buffer.Length;
-                System.IO.Stream output = response.OutputStream;
-                output.Write(maxresponse_complete, 0, maxresponse_complete.Length);
-                // You must close the output stream.
-                output.Close();
+
+                string disableSubmit = !runServer ? "disabled" : "";
+                //byte[] data = Encoding.UTF8.GetBytes(String.Format(pageData, pageViews, disableSubmit));
+                resp.ContentType = "text/html";
+                resp.ContentEncoding = Encoding.UTF8;
+                resp.ContentLength64 = maxresponse_complete.LongLength;
+                await resp.OutputStream.WriteAsync(maxresponse_complete, 0, maxresponse_complete.Length);
+                resp.Close();
             }
-            listener.Stop();
         }
 
-        public static void onAcceptReader(IAsyncResult ar) {
-            int result = listener.GetContext().Request.InputStream.EndRead(ar);
-            byte[] maxresponse_complete = new byte[result];
-            string newMessage = Encoding.UTF8.GetString(maxresponse_complete, 0 , result);
-            Console.WriteLine(newMessage);
-            Console.Write("왔네");
-            listener.BeginGetContext(onAcceptReader, null);
+
+        public static void Main(string[] args)
+        {
+            listener = new HttpListener();
+            listener.Prefixes.Add(url);
+            listener.Start();
+            Console.WriteLine("Listening for connections on {0}", url);
+
+            Task listenTask = HandleIncomingConnections();
+            listenTask.GetAwaiter().GetResult();
+            listener.Close();
         }
     }
 }
+
+
+//****
+// using System;
+// using System.Collections.Generic;
+// using System.IO;
+// using System.Net;
+// using System.Net.Sockets;
+// using System.Text;
+
+// //클래스를 하나 만들어서 클라이언트 이름과 스트림을 저장하도록 해야하나? 하나 하나 객체에다가
+// // 그렇게 해서 이 모든 객체를 관리하는걸 main에 만들어서 요청이 오는걸 확인? 
+
+
+// namespace Servereaxm
+// {
+//     internal class Program
+//     {
+//         static List<HttpListenerContext> userList = new List<HttpListenerContext>();
+//         static HttpListener listener = new HttpListener();
+//         private static void Main(string[] args)
+//         {
+//             if (!HttpListener.IsSupported)
+//             {
+//                 Console.WriteLine("Windows XP SP2 or Server 2003 is required to use the HttpListener class.");
+//                 return;
+//             }
+//             // URI prefixes are required,
+//             var prefixes = new List<string>() { "http://*:3000/" };
+
+//             // Create a listener.
+            
+//             // Add the prefixes.
+//             foreach (string s in prefixes)
+//             {
+//                 listener.Prefixes.Add(s);
+//             }
+//             listener.Start();
+
+//             Console.WriteLine("Listening...");
+//             while (true)
+//             {
+//                 // Note: The GetContext method blocks while waiting for a request.
+//                 HttpListenerContext context = listener.GetContext();
+                
+//                 Console.WriteLine("접속한 유저");
+//                 //유저 연결 저장
+//                 userList.Add(context);
+
+//                 for(int i = 0; i < userList.Count; i++){
+//                     Console.WriteLine(userList[i]);
+//                 }
+
+//                 HttpListenerRequest request = context.Request;
+
+//                 string documentContents;
+//                 using (Stream receiveStream = request.InputStream)
+//                 {
+//                     using (StreamReader readStream = new StreamReader(receiveStream, Encoding.UTF8))
+//                     {
+//                         documentContents = readStream.ReadToEnd();
+//                     }
+//                 }
+//                 Console.WriteLine($"Recived request for {request.Url}\n");
+//                 Console.WriteLine(documentContents);
+
+//                 // Obtain a response object.
+//                 HttpListenerResponse response = context.Response;
+                
+//                 listener.BeginGetContext(onAcceptReader, request);
+//                 //Console.WriteLine(response.OutputStream.ReadByte);
+//                 // Construct a response.
+//                 // string responseString = "<HTML><BODY> Hello world!</BODY></HTML>";
+//                 string file = "index.html";
+//                 FileStream readIn = new FileStream(file, FileMode.Open, FileAccess.Read);
+//                 byte[] buffer = new byte[1024 * 1000];
+//                 int nRead = readIn.Read(buffer, 0, 10240);
+//                 int total = 0;
+//                 while (nRead > 0)
+//                 {
+//                     total += nRead;
+//                     nRead = readIn.Read(buffer, total, 10240);
+//                 }
+//                 readIn.Close();
+//                 byte[] maxresponse_complete = new byte[total];
+//                 System.Buffer.BlockCopy(buffer, 0, maxresponse_complete, 0, total);
+//                 //byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
+//                 // Get a response stream and write the response to it.
+//                 //response.ContentType = "/index.html";
+//                 response.ContentLength64 = buffer.Length;
+//                 System.IO.Stream output = response.OutputStream;
+//                 output.Write(maxresponse_complete, 0, maxresponse_complete.Length);
+//                 // You must close the output stream.
+//                 output.Close();
+//             }
+//             listener.Stop();
+//         }
+
+//         public static void onAcceptReader(IAsyncResult ar) {
+//             int result = listener.GetContext().Request.InputStream.EndRead(ar);
+//             byte[] maxresponse_complete = new byte[result];
+//             string newMessage = Encoding.UTF8.GetString(maxresponse_complete, 0 , result);
+//             Console.WriteLine(newMessage);
+//             Console.Write("왔네");
+//             listener.BeginGetContext(onAcceptReader, null);
+//         }
+//     }
+// }
 //   **\\\\
 // using System;
 // using System.Collections.Generic;

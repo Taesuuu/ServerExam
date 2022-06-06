@@ -20,18 +20,27 @@
         <div id="mainDiv">
             <h1 style="font-family: IM_Hyemin-Regular;" onclick="test()">서버에서 보내는 html파일</h1>
             <h1>{{test}}</h1>
+
+            <form method="post" action="shutdown">
+                <input type="submit" value="서버종료">
+            </form>
+
+            <form method="post" action="msg">
+                <input type="text">
+                <input type="submit" value="전송">
+            </form>
         </div>
         
 
         <script>
-            const wb = new WebSocket('ws://localhost:3000/');
-            wb.onopen = function(event) {
-                wb.send(JSON.stringify("서버에 연결"));
-            }
-            function test() {
-                console.log("11");
-                wb.send(JSON.stringify("1212"));
-            }
+            // const wb = new WebSocket('ws://localhost:3000/');
+            // wb.onopen = function(event) {
+            //     wb.send(JSON.stringify("서버에 연결"));
+            // }
+            // function test() {
+            //     console.log("11");
+            //     wb.send(JSON.stringify("1212"));
+            // }
             
             var app = new Vue({
                 el : "#mainDiv",
@@ -39,8 +48,6 @@
                     test : "정태수",
                 },
                 created : function() {
-                    wb.send(JSON.stringify('Hello Server!'));
-                    console.log("소켓연결");
                     
                 }
             });
