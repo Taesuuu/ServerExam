@@ -46,6 +46,7 @@ namespace HttpListenerExample
                     Console.WriteLine(req.UserHostName + "한테 메시지 왔다");
                     string newMessage = null;
                     StreamReader reader = new StreamReader(req.InputStream, req.ContentEncoding);
+                    
                     newMessage = await reader.ReadToEndAsync();
                     
                     Console.WriteLine(newMessage);
