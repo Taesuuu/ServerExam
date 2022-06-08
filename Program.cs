@@ -1,4 +1,65 @@
-﻿using System;
+﻿// using System;
+// using System.IO;
+// using System.Text;
+// using System.Net;
+// using System.Threading.Tasks;
+// using System.Net.WebSockets;
+
+// namespace ServerExam 
+// {
+    
+//     class httpServerSocket 
+//     {
+//         public static WebSocket[] clientSockets;
+//         public static HttpListener listener;
+//         public static HttpClient client;
+//         httpServerSocket() 
+//         {
+//             listener = new HttpListener();
+//             listener.Start();
+
+//             listener.BeginGetContext(ServerConncet, null);
+//         }
+
+//         private void ServerConncet(IAsyncResult ar)
+//         {
+//             client = listener.GetContext().AcceptWebSocketAsync();
+//             //throw new NotImplementedException();
+//         }
+
+//         public static async Task ServerTask()
+//         {
+            
+//         }
+
+//         public static void Main(string[] args)
+//         {
+
+//             Console.WriteLine("서버과제");
+//             listener = new HttpListener();
+//             listener.Prefixes.Add("http://localhost:3000/");
+//             listener.Start();
+
+//             Task listenTask = ServerTask();
+//             listenTask.GetAwaiter().GetResult();
+//             listener.Close();
+//         }
+//     }
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+using System;
 using System.IO;
 using System.Text;
 using System.Net;
@@ -32,7 +93,7 @@ namespace HttpListenerExample
                 Console.WriteLine(req.HttpMethod);
                 Console.WriteLine(req.UserHostName);
                 Console.WriteLine(req.UserAgent);
-                Console.WriteLine();
+                //Console.WriteLine(ctx.User.Identity);
 
                 
                 if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/shutdown"))
@@ -43,7 +104,7 @@ namespace HttpListenerExample
 
                 if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/msg"))
                 {
-                    Console.WriteLine(req.UserHostName + "한테 메시지 왔다");
+                    Console.WriteLine(listener.GetContext().User + "한테 메시지 왔다");
                     string newMessage = null;
                     StreamReader reader = new StreamReader(req.InputStream, req.ContentEncoding);
                     
@@ -51,31 +112,31 @@ namespace HttpListenerExample
                     
                     Console.WriteLine(newMessage);
                 }
-               
+                string file = "index.html";
+                    FileStream readIn = new FileStream(file, FileMode.Open, FileAccess.Read);
+                    byte[] buffer = new byte[1024 * 1000];
+                    int nRead = readIn.Read(buffer, 0, 10240);
+                    int total = 0;
+                    while (nRead > 0)
+                    {
+                        total += nRead;
+                        nRead = readIn.Read(buffer, total, 10240);
+                    }
+                    readIn.Close();
+                    byte[] maxresponse_complete = new byte[total];
+                    System.Buffer.BlockCopy(buffer, 0, maxresponse_complete, 0, total);
+
+                    string disableSubmit = !runServer ? "disabled" : "";
+                    //byte[] data = Encoding.UTF8.GetBytes(String.Format(pageData, pageViews, disableSubmit));
+                    resp.ContentType = "text/html";
+                    resp.ContentEncoding = Encoding.UTF8;
+                    resp.ContentLength64 = maxresponse_complete.LongLength;
+                    await resp.OutputStream.WriteAsync(maxresponse_complete, 0, maxresponse_complete.Length);
+                    resp.Close();
                 // if ((req.HttpMethod == "POST")&& (req.Url.AbsolutePath != "/favicon.ico")){
                 //     pageViews += 1;
                 // }
-                string file = "index.html";
-                FileStream readIn = new FileStream(file, FileMode.Open, FileAccess.Read);
-                byte[] buffer = new byte[1024 * 1000];
-                int nRead = readIn.Read(buffer, 0, 10240);
-                int total = 0;
-                while (nRead > 0)
-                {
-                    total += nRead;
-                    nRead = readIn.Read(buffer, total, 10240);
-                }
-                readIn.Close();
-                byte[] maxresponse_complete = new byte[total];
-                System.Buffer.BlockCopy(buffer, 0, maxresponse_complete, 0, total);
-
-                string disableSubmit = !runServer ? "disabled" : "";
-                //byte[] data = Encoding.UTF8.GetBytes(String.Format(pageData, pageViews, disableSubmit));
-                resp.ContentType = "text/html";
-                resp.ContentEncoding = Encoding.UTF8;
-                resp.ContentLength64 = maxresponse_complete.LongLength;
-                await resp.OutputStream.WriteAsync(maxresponse_complete, 0, maxresponse_complete.Length);
-                resp.Close();
+                
             }
         }
 

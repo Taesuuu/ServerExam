@@ -30,12 +30,12 @@
                 <input type="submit" value="전송">
             </form>
 
-            <button v-on:click="sendPost('msg', '정태수')" value="테스트"></button>
+            <button v-on:click="sendPost('msg', '정태수')">테스트</button>
         </div>
         
 
         <script>
-            // const wb = new WebSocket('ws://localhost:3000/');
+            // var wb = null;
             // wb.onopen = function(event) {
             //     wb.send(JSON.stringify("서버에 연결"));
             // }
@@ -51,6 +51,10 @@
                 },
                 created : function() {
                     
+                    // wb = new WebSocket("ws://" + document.location.hostname + ":3000" + "/ws");
+                    // wb.readyState = WebSocket.OPEN;
+                    // wb.onmessage("성공");
+                    // console.log("소켓 연결 성공");
                 },
                 methods : {
                      sendPost : function(url, params) {
@@ -71,6 +75,15 @@
                         document.body.appendChild(form);
                         form.submit();
                     }
+
+                    // htmlEscape: function (str) {
+                    //     return str.toString()
+                    //         .replace(/&/g, '&amp;')
+                    //         .replace(/"/g, '&quot;')
+                    //         .replace(/'/g, '&#39;')
+                    //         .replace(/</g, '&lt;')
+                    //         .replace(/>/g, '&gt;');
+                    // }
                 }
             });
 
