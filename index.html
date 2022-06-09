@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script src="https://cdn.jsdelivr.net/npm/vue@2.5.2/dist/vue.js"></script>
+        <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2.5.2/dist/vue.js"></script> -->
         <title>ServerExam</title>
         <style>
             @font-face {
@@ -19,13 +19,13 @@
     <body>
         <div id="mainDiv">
             <h1 style="font-family: IM_Hyemin-Regular;" onclick="test()">서버에서 보내는 html파일</h1>
-            <h1>{{test}}</h1>
+            <!-- <h1>{{test}}</h1> -->
 
             <form method="post" action="shutdown">
                 <input type="submit" value="서버종료">
             </form>
 
-            <form method="post" action="msg">
+            <form method="post" action="http://127.0.0.1:3000/GodDamn/">
                 <input type="text">
                 <input type="submit" value="전송">
             </form>
@@ -42,15 +42,15 @@
             //     wb.send(JSON.stringify("1212"));
             // }
             
-            var app = new Vue({
-                el : "#mainDiv",
-                data : {
-                    test : "정태수",
-                },
-                created : function() {
+            // var app = new Vue({
+            //     el : "#mainDiv",
+            //     data : {
+            //         test : "정태수",
+            //     },
+            //     created : function() {
                     
-                }
-            });
+            //     }
+            // });
 
             
         </script>
