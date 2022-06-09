@@ -1,124 +1,160 @@
-﻿using System.Net;
+﻿// using System.Net;
 
-HttpListener listener = new HttpListener();
-listener.Prefixes.Add("http://127.0.0.1:3000/GodDamn/");
-listener.Start();
-Console.WriteLine("Listening...");
-HttpListenerContext context = listener.GetContext();
-HttpListenerRequest request = context.Request;
-HttpListenerResponse response = context.Response;
-Stream body = request.InputStream;
-System.Text.Encoding encoding = request.ContentEncoding;
-System.IO.StreamReader reader = new System.IO.StreamReader(body, encoding);
+// HttpListener listener = new HttpListener();
+// listener.Prefixes.Add("http://127.0.0.1:3000/GodDamn/");
+// listener.Start();
+// Console.WriteLine("Listening...");
+// HttpListenerContext context = listener.GetContext();
+// HttpListenerRequest request = context.Request;
+// HttpListenerResponse response = context.Response;
+// Stream body = request.InputStream;
+// System.Text.Encoding encoding = request.ContentEncoding;
+// System.IO.StreamReader reader = new System.IO.StreamReader(body, encoding);
 
-string s = reader.ReadToEnd();
-string responseString = s;    
-System.Console.WriteLine(responseString);
-byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
-response.OutputStream.Write(buffer, 0, buffer.Length);
-response.OutputStream.Close();
-listener.Stop();
-// 맥이여서 그런가?
+// string s = reader.ReadToEnd();
+// string responseString = s;    
+// System.Console.WriteLine(responseString);
+// byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
+// response.OutputStream.Write(buffer, 0, buffer.Length);
+// response.OutputStream.Close();
+// listener.Stop();
+// // 맥이여서 그런가?
 
+using System;
+using System.IO;
+using System.Text;
+using System.Net;
+using System.Threading.Tasks;
 
+namespace HttpListenerExample
+{
+    class HttpServer
+    {
+        public static HttpListener listener;
+        public static string url = "http://127.0.0.1:3000/GodDamn/";
+        public static int pageViews = 0;
+        public static int requestCount = 1;
+        public static List<HttpListenerContext> userList;
+        public static async Task HandleIncomingConnections()
+        {
+            bool runServer = true;
 
-
-
-
-// using System;
-// using System.IO;
-// using System.Text;
-// using System.Net;
-// using System.Threading.Tasks;
-
-// namespace HttpListenerExample
-// {
-//     class HttpServer
-//     {
-//         public static HttpListener listener;
-//         public static string url = "http://localhost:3000/";
-//         public static int pageViews = 0;
-//         public static int requestCount = 1;
-
-//         public static async Task HandleIncomingConnections()
-//         {
-//             bool runServer = true;
-
-//             while (runServer)
-//             {
+            while (runServer)
+            {
                
-//                 HttpListenerContext ctx = await listener.GetContextAsync();
+                HttpListenerContext ctx = await listener.GetContextAsync();
+                
+                //userList.Add(ctx);
+                // string test = ClientInformation(ctx);
+                // Console.WriteLine(test);
+                // HttpListenerBasicIdentity identity = (HttpListenerBasicIdentity)ctx.User.Identity;
+                // Console.WriteLine(identity.Name);
+                // Console.WriteLine(identity.Password);
+                HttpListenerRequest req = ctx.Request;
+                HttpListenerResponse resp = ctx.Response;
+                string newMessage = null;
+                if(req.Url.AbsolutePath != "/favicon.ico"){
+                    Console.WriteLine("Request #: " + requestCount++);
+                Console.WriteLine(req.Url.ToString());
+                Console.WriteLine(req.HttpMethod);
+                Console.WriteLine(req.UserHostName);
+                Console.WriteLine(req.UserAgent);
+                Console.WriteLine();
 
                 
-//                 HttpListenerRequest req = ctx.Request;
-//                 HttpListenerResponse resp = ctx.Response;
-//                 string newMessage = null;
-               
-//                 Console.WriteLine("Request #: " + requestCount++);
-//                 Console.WriteLine(req.Url.ToString());
-//                 Console.WriteLine(req.HttpMethod);
-//                 Console.WriteLine(req.UserHostName);
-//                 Console.WriteLine(req.UserAgent);
-//                 Console.WriteLine();
+                if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/shutdown"))
+                {
+                    Console.WriteLine("Shutdown requested");
+                    runServer = false;
+                }
 
+                if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/GodDamn/"))
+                {
+                    Console.WriteLine(ctx.User + "한테 메시지 왔다");
+                    Stream body = req.InputStream;
+                    System.Text.Encoding encoding = req.ContentEncoding;
+                    System.IO.StreamReader reader = new System.IO.StreamReader(body, encoding);
+                    //StreamReader reader = new StreamReader(req.InputStream, req.ContentEncoding);
+                    newMessage = await reader.ReadToEndAsync();
+                    Console.WriteLine(newMessage);
+                    Console.WriteLine();
+                    
+                    string responseString = newMessage;    
+                    //System.Console.WriteLine(responseString);
+                    byte[] buffers = System.Text.Encoding.UTF8.GetBytes(responseString);
+                    resp.OutputStream.Write(buffers, 0, buffers.Length);
+                    
+                    resp.Close();
+                }
+               
+                // if ((req.HttpMethod == "POST")&& (req.Url.AbsolutePath != "/favicon.ico")){
+                //     pageViews += 1;
+                // }
+                if((req.Url.AbsolutePath == "/")){
+                    string file = "index.html";
+                FileStream readIn = new FileStream(file, FileMode.Open, FileAccess.Read);
+                byte[] buffer = new byte[1024 * 1000];
+                int nRead = readIn.Read(buffer, 0, 10240);
+                int total = 0;
+                while (nRead > 0)
+                {
+                    total += nRead;
+                    nRead = readIn.Read(buffer, total, 10240);
+                }
+                readIn.Close();
+                byte[] maxresponse_complete = new byte[total];
+                System.Buffer.BlockCopy(buffer, 0, maxresponse_complete, 0, total);
+
+                string disableSubmit = !runServer ? "disabled" : "";
+                //byte[] data = Encoding.UTF8.GetBytes(String.Format(maxresponse_complete, pageViews, disableSubmit));
+                resp.ContentType = "text/html";
+                resp.ContentEncoding = Encoding.UTF8;
+                resp.ContentLength64 = maxresponse_complete.LongLength;
+                await resp.OutputStream.WriteAsync(maxresponse_complete, 0, maxresponse_complete.Length);
+                resp.OutputStream.Close();
+                }
                 
-//                 if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/shutdown"))
-//                 {
-//                     Console.WriteLine("Shutdown requested");
-//                     runServer = false;
-//                 }
+                }
+                
+            }
+        }
+        public static string ClientInformation(HttpListenerContext context)
+        {
+            System.Security.Principal.IPrincipal user = context.User;
+            System.Security.Principal.IIdentity id = user.Identity;
+            if (id == null)
+            {
+                return "Client authentication is not enabled for this Web server.";
+            }
 
-//                 if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/msg"))
-//                 {
-//                     Console.WriteLine(req.UserHostName + "한테 메시지 왔다");
-                    
-//                     StreamReader reader = new StreamReader(req.InputStream, req.ContentEncoding);
-//                     newMessage = await reader.ReadToEndAsync();
-                    
-//                     Console.WriteLine(newMessage);
-//                 }
-               
-//                 // if ((req.HttpMethod == "POST")&& (req.Url.AbsolutePath != "/favicon.ico")){
-//                 //     pageViews += 1;
-//                 // }
-//                 // string file = "index.html";
-//                 // FileStream readIn = new FileStream(file, FileMode.Open, FileAccess.Read);
-//                 // byte[] buffer = new byte[1024 * 1000];
-//                 // int nRead = readIn.Read(buffer, 0, 10240);
-//                 // int total = 0;
-//                 // while (nRead > 0)
-//                 // {
-//                 //     total += nRead;
-//                 //     nRead = readIn.Read(buffer, total, 10240);
-//                 // }
-//                 // readIn.Close();
-//                 // byte[] maxresponse_complete = new byte[total];
-//                 // System.Buffer.BlockCopy(buffer, 0, maxresponse_complete, 0, total);
-//                 string pageData = newMessage;
-//                 string disableSubmit = !runServer ? "disabled" : "";
-//                 byte[] data = Encoding.UTF8.GetBytes(String.Format(pageData, pageViews, disableSubmit));
-//                 resp.ContentType = "text/html";
-//                 resp.ContentEncoding = Encoding.UTF8;
-//                 resp.ContentLength64 = data.LongLength;
-//                 await resp.OutputStream.WriteAsync(data, 0, data.Length);
-//                 resp.Close();
-//             }
-//         }
+            string display;
+            if (id.IsAuthenticated)
+            {
+                display = String.Format("{0} was authenticated using {1}", id.Name,
+                id.AuthenticationType);
+            }
+            else
+            {       
+                display = String.Format("{0} was not authenticated", id.Name);
+            }
+            return display;
+            }
 
+        public static void Main(string[] args)
+        {
+            listener = new HttpListener();
+            listener.Prefixes.Add(url);
+            listener.Prefixes.Add("http://127.0.0.1:3000/");
+            // listener.AuthenticationSchemes = AuthenticationSchemes.Basic;
+            listener.Start();
+            Console.WriteLine("Listening for connections on {0}", url);
 
-//         public static void Main(string[] args)
-//         {
-//             listener = new HttpListener();
-//             listener.Prefixes.Add(url);
-//             listener.Start();
-//             Console.WriteLine("Listening for connections on {0}", url);
-
-//             Task listenTask = HandleIncomingConnections();
-//             listenTask.GetAwaiter().GetResult();
-//             listener.Close();
-//         }
-//     }
-// }
+            Task listenTask = HandleIncomingConnections();
+            listenTask.GetAwaiter().GetResult();
+            listener.Close();
+        }
+    }
+}
 
 
 //****

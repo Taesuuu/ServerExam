@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "lJoSp8uag4iFXOVZTAACvt4Gc5nd45leN8Taso8PiUzq8seUrOemobw+u3n3lbrHZFCdLw9jTEqSM4oiluB87Q==",
+  "dgSpecHash": "nWQzMfhwZjnhHOxdkChbZoT1oXk3eJnsFzLa4aTmmjKo0Ef5su+sYPL3LawLtVZa4YvBwd0zoBgMqNf9ZGvb+w==",
   "success": true,
-  "projectFilePath": "/Volumes/태수/Git/ServerExam/ServerExam.csproj",
+  "projectFilePath": "D:\\Git\\ServerExam\\ServerExam.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }
