@@ -24,6 +24,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Net;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace HttpListenerExample
@@ -79,7 +80,8 @@ namespace HttpListenerExample
                     Console.WriteLine(newMessage);
                     Console.WriteLine();
                     
-                    string responseString = newMessage;    
+                    string responseString = JsonSerializer.Serialize(newMessage);
+                    Console.WriteLine(responseString);
                     //System.Console.WriteLine(responseString);
                     byte[] buffers = System.Text.Encoding.UTF8.GetBytes(responseString);
                     resp.OutputStream.Write(buffers, 0, buffers.Length);
