@@ -36,6 +36,30 @@ namespace HttpListenerExample
         public static int pageViews = 0;
         public static int requestCount = 1;
         public static List<HttpListenerContext> userList;
+
+        public static void txtLog(string logstring) {
+            string savePath = @"D:\Git\ServerExam\LogFile.txt";
+            string log = JsonSerializer.Serialize(logstring);
+            System.IO.File.AppendAllText(savePath, log, Encoding.UTF8);
+        }
+        public static async Task loginFunction(HttpListenerContext context) {
+            bool runServer = true;
+            while(runServer) {
+                HttpListenerRequest req = context.Request;
+                HttpListenerResponse resp = context.Response;
+                if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/Login"))
+                {
+                    string responseString = "로그인 성공";
+                    Console.WriteLine(responseString);
+                    //System.Console.WriteLine(responseString);
+                    byte[] buffers = System.Text.Encoding.UTF8.GetBytes(responseString);
+                    resp.OutputStream.Write(buffers, 0, buffers.Length);
+                    
+                    resp.Close();
+                }
+            }
+            
+        }
         public static async Task HandleIncomingConnections()
         {
             bool runServer = true;
@@ -53,6 +77,7 @@ namespace HttpListenerExample
                 // Console.WriteLine(identity.Password);
                 HttpListenerRequest req = ctx.Request;
                 HttpListenerResponse resp = ctx.Response;
+                //resp.AddHeader("Access-Control-Allow-Orgin","*");
                 string newMessage = null;
                 if(req.Url.AbsolutePath != "/favicon.ico"){
                     Console.WriteLine("Request #: " + requestCount++);
@@ -79,8 +104,30 @@ namespace HttpListenerExample
                     newMessage = await reader.ReadToEndAsync();
                     Console.WriteLine(newMessage);
                     Console.WriteLine();
-                    
+                    txtLog(newMessage + "\n");
                     string responseString = JsonSerializer.Serialize(newMessage);
+                    Console.WriteLine(responseString);
+                    //System.Console.WriteLine(responseString);
+                    byte[] buffers = System.Text.Encoding.UTF8.GetBytes(responseString);
+                    resp.OutputStream.Write(buffers, 0, buffers.Length);
+                    
+                    resp.Close();
+                }
+
+                if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/Login/"))
+                {
+                    string responseString = "로그인 성공";
+                    Console.WriteLine(responseString);
+                    Stream body = req.InputStream;
+                    System.Text.Encoding encoding = req.ContentEncoding;
+                    System.IO.StreamReader reader = new System.IO.StreamReader(body, encoding);
+                    //StreamReader reader = new StreamReader(req.InputStream, req.ContentEncoding);
+                    responseString = JsonSerializer.Serialize(await reader.ReadToEndAsync());
+                    
+                    // string responseJson = JsonSerializer.Serialize(responseString);
+                    Console.WriteLine(responseString);
+                    
+                    txtLog(responseString + "\n");
                     Console.WriteLine(responseString);
                     //System.Console.WriteLine(responseString);
                     byte[] buffers = System.Text.Encoding.UTF8.GetBytes(responseString);
@@ -108,6 +155,7 @@ namespace HttpListenerExample
                 System.Buffer.BlockCopy(buffer, 0, maxresponse_complete, 0, total);
 
                 string disableSubmit = !runServer ? "disabled" : "";
+                
                 //byte[] data = Encoding.UTF8.GetBytes(String.Format(maxresponse_complete, pageViews, disableSubmit));
                 resp.ContentType = "text/html";
                 resp.ContentEncoding = Encoding.UTF8;
@@ -147,6 +195,7 @@ namespace HttpListenerExample
             listener = new HttpListener();
             listener.Prefixes.Add(url);
             listener.Prefixes.Add("http://127.0.0.1:3000/");
+            listener.Prefixes.Add("http://127.0.0.1:3000/Login/");
             // listener.AuthenticationSchemes = AuthenticationSchemes.Basic;
             listener.Start();
             Console.WriteLine("Listening for connections on {0}", url);
