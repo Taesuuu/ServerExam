@@ -26,16 +26,24 @@ using System.Text;
 using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Net.WebSockets;
 
 namespace HttpListenerExample
 {
+    class userData {
+        public HttpListenerContext thisuserContext;
+        public userData(HttpListenerContext context) {
+            thisuserContext = context;
+        }
+    }
+
     class HttpServer
     {
         public static HttpListener listener;
         public static string url = "http://127.0.0.1:3000/GodDamn/";
         public static int pageViews = 0;
         public static int requestCount = 1;
-        public static List<HttpListenerContext> userList;
+        public List<HttpListenerContext> userList;
 
         public static void txtLog(string logstring) {
             string savePath = @"D:\Git\ServerExam\LogFile.txt";
@@ -46,6 +54,7 @@ namespace HttpListenerExample
         public static async Task loginFunction(HttpListenerContext context) {
             bool runServer = true;
             while(runServer) {
+                
                 HttpListenerRequest req = context.Request;
                 HttpListenerResponse resp = context.Response;
                 if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/Login"))
@@ -70,6 +79,7 @@ namespace HttpListenerExample
                
                 HttpListenerContext ctx = await listener.GetContextAsync();
                 
+                userData data = new userData(ctx);
                 //userList.Add(ctx);
                 // string test = ClientInformation(ctx);
                 // Console.WriteLine(test);
@@ -97,18 +107,21 @@ namespace HttpListenerExample
 
                 if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/GodDamn/"))
                 {
-                    Console.WriteLine(ctx.User + "한테 메시지 왔다");
+                    
                     Stream body = req.InputStream;
                     System.Text.Encoding encoding = req.ContentEncoding;
                     System.IO.StreamReader reader = new System.IO.StreamReader(body, encoding);
                     //StreamReader reader = new StreamReader(req.InputStream, req.ContentEncoding);
                     newMessage = await reader.ReadToEndAsync();
                     Console.WriteLine(newMessage);
+                    // userData data = new userData(ctx);
+                    // userList.Add(data);
+                    // Console.WriteLine(userList.Count + "명 접속 중");
                     Console.WriteLine();
                     txtLog(newMessage + "\n");
-                    string test1 = "메시지 왔다";
+                    //string test1 = "메시지 왔다";
                     //string responseString = JsonSerializer.Serialize(newMessage);
-                    Console.WriteLine(newMessage);
+                    //Console.WriteLine(newMessage);
                     //System.Console.WriteLine(responseString);
                     byte[] buffers = System.Text.Encoding.UTF8.GetBytes(newMessage);
                     await resp.OutputStream.WriteAsync(buffers, 0, buffers.Length);
@@ -128,12 +141,35 @@ namespace HttpListenerExample
                     responseString = await reader.ReadToEndAsync();
                     
                     // string responseJson = JsonSerializer.Serialize(responseString);
-                    Console.WriteLine(responseString);
+                    // Console.WriteLine(responseString);
                     
                     txtLog(responseString + "\n");
                     string testString = "보내는 용도";
                     Console.WriteLine(responseString);
+                    Console.WriteLine();
                     //System.Console.WriteLine(responseString);
+                    byte[] buffers = System.Text.Encoding.UTF8.GetBytes(responseString);
+                    
+                    await resp.OutputStream.WriteAsync(buffers, 0, buffers.Length);
+                    resp.OutputStream.Close();
+                    
+                }
+
+                if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/LogOut/"))
+                {
+                    string responseString = "로그아웃";
+                    Console.WriteLine(responseString);
+                    Stream body = req.InputStream;
+                    System.Text.Encoding encoding = req.ContentEncoding;
+                    System.IO.StreamReader reader = new System.IO.StreamReader(body, encoding);
+                    //StreamReader reader = new StreamReader(req.InputStream, req.ContentEncoding);
+                    responseString = await reader.ReadToEndAsync();
+                    
+                    // string responseJson = JsonSerializer.Serialize(responseString);
+                    Console.WriteLine(responseString);
+                    
+                    txtLog(responseString + "\n");
+                    
                     byte[] buffers = System.Text.Encoding.UTF8.GetBytes(responseString);
                     
                     await resp.OutputStream.WriteAsync(buffers, 0, buffers.Length);
@@ -201,6 +237,7 @@ namespace HttpListenerExample
             listener.Prefixes.Add(url);
             listener.Prefixes.Add("http://127.0.0.1:3000/");
             listener.Prefixes.Add("http://127.0.0.1:3000/Login/");
+            listener.Prefixes.Add("http://127.0.0.1:3000/LogOut/");
             // listener.AuthenticationSchemes = AuthenticationSchemes.Basic;
             listener.Start();
             Console.WriteLine("Listening for connections on {0}", url);
