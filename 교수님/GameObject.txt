@@ -1,0 +1,44 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.Networking;
+
+public class NewBehaviourScript : MonoBehaviour
+{
+    
+    // Start is called before the first frame update
+    void Start()
+    {
+        
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        
+    }
+
+    public void ButtonClickHandler()
+    {
+        StartCoroutine(RESTCall());
+    }
+
+    IEnumerator RESTCall()
+    {
+        string a = "fuck";
+        UnityWebRequest www = UnityWebRequest.Post("http://127.0.0.1:3000/GodDamn/", a);
+        yield return www.SendWebRequest();
+        
+        if (www.isNetworkError || www.isHttpError)
+        {
+            Debug.Log(www.error);
+        }
+        else
+        {
+            Debug.Log("Form upload complete!");
+
+            this.gameObject.GetComponent<Text>().text = www.downloadHandler.text;
+        }
+    }
+}
