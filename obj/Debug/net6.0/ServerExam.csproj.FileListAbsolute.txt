@@ -28,3 +28,5 @@ D:\Git\ServerExam\obj\Debug\net6.0\refint\ServerExam.dll
 D:\Git\ServerExam\obj\Debug\net6.0\ServerExam.pdb
 D:\Git\ServerExam\obj\Debug\net6.0\ServerExam.genruntimeconfig.cache
 D:\Git\ServerExam\obj\Debug\net6.0\ref\ServerExam.dll
+D:\Git\ServerExam\obj\Debug\net6.0\Chapter9UI.Form1.resources
+D:\Git\ServerExam\obj\Debug\net6.0\ServerExam.csproj.GenerateResource.cache

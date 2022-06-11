@@ -14,7 +14,16 @@ namespace TestProject15
             if(FinalTestSample.Program.Main() == 0)
             {
                 
-                Assert.IsTrue(false);
+                Assert.IsTrue(FinalTestSample.Program.Main() == 0);
+                
+            }
+        }
+        [TestMethod]
+        public void TestMethod2()
+        {
+            if (FinalTestSample.Program.mainString() != null)
+            {
+                Assert.IsNotNull(FinalTestSample.Program.mainString());
                 
             }
         }
