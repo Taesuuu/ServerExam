@@ -39,7 +39,8 @@ namespace HttpListenerExample
 
         public static void txtLog(string logstring) {
             string savePath = @"D:\Git\ServerExam\LogFile.txt";
-            string log = JsonSerializer.Serialize(logstring);
+            string logTime = DateTime.Now.ToString("hh:mm:ss tt ");
+            string log = logTime + logstring;
             System.IO.File.AppendAllText(savePath, log, Encoding.UTF8);
         }
         public static async Task loginFunction(HttpListenerContext context) {
@@ -105,13 +106,15 @@ namespace HttpListenerExample
                     Console.WriteLine(newMessage);
                     Console.WriteLine();
                     txtLog(newMessage + "\n");
-                    string responseString = JsonSerializer.Serialize(newMessage);
-                    Console.WriteLine(responseString);
+                    string test1 = "메시지 왔다";
+                    //string responseString = JsonSerializer.Serialize(newMessage);
+                    Console.WriteLine(newMessage);
                     //System.Console.WriteLine(responseString);
-                    byte[] buffers = System.Text.Encoding.UTF8.GetBytes(responseString);
-                    resp.OutputStream.Write(buffers, 0, buffers.Length);
+                    byte[] buffers = System.Text.Encoding.UTF8.GetBytes(newMessage);
+                    await resp.OutputStream.WriteAsync(buffers, 0, buffers.Length);
                     
-                    resp.Close();
+                    resp.OutputStream.Close();
+                    
                 }
 
                 if ((req.HttpMethod == "POST") && (req.Url.AbsolutePath == "/Login/"))
@@ -122,18 +125,20 @@ namespace HttpListenerExample
                     System.Text.Encoding encoding = req.ContentEncoding;
                     System.IO.StreamReader reader = new System.IO.StreamReader(body, encoding);
                     //StreamReader reader = new StreamReader(req.InputStream, req.ContentEncoding);
-                    responseString = JsonSerializer.Serialize(await reader.ReadToEndAsync());
+                    responseString = await reader.ReadToEndAsync();
                     
                     // string responseJson = JsonSerializer.Serialize(responseString);
                     Console.WriteLine(responseString);
                     
                     txtLog(responseString + "\n");
+                    string testString = "보내는 용도";
                     Console.WriteLine(responseString);
                     //System.Console.WriteLine(responseString);
                     byte[] buffers = System.Text.Encoding.UTF8.GetBytes(responseString);
-                    resp.OutputStream.Write(buffers, 0, buffers.Length);
                     
-                    resp.Close();
+                    await resp.OutputStream.WriteAsync(buffers, 0, buffers.Length);
+                    resp.OutputStream.Close();
+                    
                 }
                
                 // if ((req.HttpMethod == "POST")&& (req.Url.AbsolutePath != "/favicon.ico")){
