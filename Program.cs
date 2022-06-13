@@ -144,7 +144,6 @@ namespace HttpListenerExample
                     // Console.WriteLine(responseString);
                     
                     txtLog(responseString + "\n");
-                    string testString = "보내는 용도";
                     Console.WriteLine(responseString);
                     Console.WriteLine();
                     //System.Console.WriteLine(responseString);
