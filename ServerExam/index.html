@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://cdn.jsdelivr.net/npm/vue@2.5.2/dist/vue.js"></script>
+        <title>ServerExam</title>
+        <style>
+            @font-face {
+                font-family: 'IM_Hyemin-Regular';
+                src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2106@1.1/IM_Hyemin-Regular.woff2') format('woff');
+                font-weight: normal;
+                font-style: normal;
+            }
+        </style>
+        
+    </head>
+    <body>
+        <div id="mainDiv">
+            <h1 style="font-family: IM_Hyemin-Regular;" onclick="test()">서버에서 보내는 html파일</h1>
+            <h1>{{test}}</h1>
+
+            <form method="post" action="shutdown">
+                <input type="submit" value="서버종료">
+            </form>
+
+            <form method="post" action="http://127.0.0.1:3000/GodDamn/">
+                <input name="jts" type="text">
+                <input id="btn_get" type="submit" value="전송">
+            </form>
+        </div>
+        
+
+        <script>
+
+           
+// document.getElementById("btn_get").onclick = function(evnet){
+
+// const request = new XMLHttpRequest();
+
+// request.onreadystatechange = function(evnet){
+//     if (request.readyState == 4 && request.status == 200){
+//         console.log(request.responseText);
+//     }
+// }
+
+// // POST 설정
+// request.open('POST', '/board', true);
+
+// // !!! POST 전송시, 데이터 전달을 위한 설정
+// request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+// request.send(`name=태수&age=30`);
+
+// }
+const request = new XMLHttpRequest();
+
+// 2. 요청 초기화
+request.open('POST', 'http://127.0.0.1:3000/GodDamn/', true);
+
+// 3. 요청 전송
+// request.send();
+
+// 4. onreadystatechage 이벤트리스너 등록
+request.onreadystatechange = function(event){
+    // 1) 데이터를 다 받았고, 2) 응답코드 200(성공)을 받았는지 체크
+    if(request.readyState == 4 && request.status == 200){
+
+        // 응답받은 데이터 체크
+        var responseData = request.responseText;
+        console.log(responseData);
+
+    }
+    
+}
+            // var test = new XMLHttpRequest();
+            // test.open("POST", "/GodDamn", true);
+            // test.setRequestHeader('Content-Type', 'application/json');
+            // test.send(JSON.stringify({
+            // value: 'value'
+            // }));
+            // const wb = new WebSocket('ws://localhost:3000/');
+            // wb.onopen = function(event) {
+            //     wb.send(JSON.stringify("서버에 연결"));
+            // }
+            // function test() {
+            //     console.log("11");
+            //     wb.send(JSON.stringify("1212"));
+            // }
+            
+            var app = new Vue({
+                el : "#mainDiv",
+                data : {
+                    test : "정태수",
+                },
+                created : function() {
+                    
+                }
+            });
+
+            
+        </script>
+    </body>
+</html>

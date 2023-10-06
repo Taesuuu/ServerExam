@@ -1,0 +1,581 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using System.Reflection;
+using System.IO;
+
+namespace CoolioServerWeb
+{
+    class Program
+    {
+        public static HttpListener listener = new HttpListener();
+        public static string startUpPath = System.IO.Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+        public static List<FileName> virtualPaths = new List<FileName>();
+        public static void Main(string[] args)
+        {
+            listener.Start();
+            load();
+            Thread t = new Thread(new ThreadStart(clientListener));
+            t.Start();
+            Console.Write(">");
+            while (true)
+            {
+                string s = Console.ReadLine();
+                Console.Write(">");
+            }
+        }
+        public static void load()
+        {
+            StreamReader sr = new StreamReader(startUpPath + "\\site.cfg");
+            string s = sr.ReadLine();
+            while (s != null)
+            {
+                if (s.StartsWith("Port: "))
+                {
+                    s = s.Replace("Port: ", "");
+                    listener.Prefixes.Add(s);
+                }
+                s = sr.ReadLine();
+            }
+        }
+        public static void clientListener()
+        {
+            while (true)
+            {
+                try
+                {
+                    HttpListenerContext request = listener.GetContext();
+                    ThreadPool.QueueUserWorkItem(processRequest, request);
+                }
+                catch (Exception e) { Console.WriteLine(e.Message); Console.Write(">"); }
+            }
+        }
+        public static void processRequest(object listenerContext)
+        {
+            try
+            {
+                var context = (HttpListenerContext)listenerContext;
+                string filename = Path.GetFileName(context.Request.RawUrl);
+
+
+                string path = "";
+                filename = filename.ToLower();
+                if (filename.EndsWith(".png") || filename.EndsWith(".jpg") || filename.EndsWith(".gif"))
+                {
+                    path = startUpPath + "\\webroot\\imgs\\" + filename;
+                }
+                else if (filename.EndsWith(".htm") || filename.EndsWith(".html") || filename.EndsWith(".js") || filename.EndsWith(".css"))
+                {
+                    path = startUpPath + "\\webroot\\" + filename;
+                }
+                else if (filename == "")
+                {
+                    path = startUpPath + "\\webroot\\index.html";
+                }
+                
+                byte[] msg;
+                if (!File.Exists(path))
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                    msg = File.ReadAllBytes(startUpPath + "\\webroot\\error.html");
+                }
+                else
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.OK;
+                    msg = File.ReadAllBytes(path);
+                }
+                context.Response.ContentLength64 = msg.Length;
+                using (Stream s = context.Response.OutputStream)
+                    s.Write(msg, 0, msg.Length);
+            }
+            catch
+            {
+
+            }
+        }
+    }
+    class FileName
+    {
+        public string absolutePath = "";
+        public string externalName = "";
+    }
+}
+
+
+
+/-------------------------------------------/
+
+// using System;
+// using System.Collections;
+// using System.Collections.Generic;
+// using System.Net;
+// using System.Net.Sockets;
+// using System.Text;
+// using System.Text.RegularExpressions;
+
+// public enum WebSocketState
+// {
+//     None = 0,
+//     Connecting = 1,
+//     Open = 2,
+//     CloseSent = 3,
+//     CloseReceived = 4,
+//     Closed = 5,
+//     Aborted = 6
+// }
+
+// public enum PayloadDataType
+// {
+//     Unknown = -1,
+//     Continuation = 0,
+//     Text = 1,
+//     Binary = 2,
+//     ConnectionClose = 8,
+//     Ping = 9,
+//     Pong = 10
+// }
+
+
+// class ConnectionManager
+// {
+//     private readonly TcpListener tcpListener;
+
+//     public ConnectionManager(string address, int port)
+//     {
+//         tcpListener = new TcpListener(IPAddress.Parse(address), port);
+//         tcpListener.Start();
+//         //비동기 Listening 시작
+//         tcpListener.BeginAcceptTcpClient(OnAcceptClient, null);
+//     }
+
+//     private void OnAcceptClient(IAsyncResult ar)
+//     {
+//         TcpClient client = tcpListener.EndAcceptTcpClient(ar);
+//         WebSocketController webSocketController = new WebSocketController(client);
+//         //다음 클라이언트를 대기
+//         tcpListener.BeginAcceptTcpClient(OnAcceptClient, null);
+//     }
+// }
+
+
+// class WebSocketController
+// {
+//     //웹 소켓의 상태 객체
+//     public WebSocketState State { get; private set; } = WebSocketState.None;
+
+//     private readonly TcpClient targetClient;
+//     private readonly NetworkStream messageStream;
+//     private readonly byte[] dataBuffer = new byte[1024];
+
+//     public WebSocketController(TcpClient tcpClient)
+//     {
+//         State = WebSocketState.Connecting;  //완전한 WebSocket 연결이 아니므로 연결 중 표시
+
+//         targetClient = tcpClient;
+//         messageStream = targetClient.GetStream();
+//         messageStream.BeginRead(dataBuffer, 0, dataBuffer.Length, OnReadData, null);
+//     }
+
+//     private void OnReadData(IAsyncResult ar)
+//     {
+//         int size = messageStream.EndRead(ar);   //데이터 수신 종료
+
+//         byte[] httpRequestRaw = new byte[7];    //HTTP request method는 7자리를 넘지 않는다.
+//                                                 //GET만 확인하면 되므로 new byte[3]해도 상관없음
+//         Array.Copy(dataBuffer, httpRequestRaw, httpRequestRaw.Length);
+//         string httpRequest = Encoding.UTF8.GetString(httpRequestRaw);
+
+//         //GET 요청인지 여부 확인
+//         if (Regex.IsMatch(httpRequest, "^GET", RegexOptions.IgnoreCase))
+//         {
+//             HandshakeToClient(size);        // 연결 요청에 대한 응답
+//             State = WebSocketState.Open;    // 응답이 성공하여 연결 중으로 상태 전환
+//         }
+//         else
+//         {
+//             // 메시지 수신에 대한 처리, 반환 값은 연결 종료 여부
+//             if (ProcessClientRequest(size) == false) { return; }
+//         }
+
+//         //데이터 수신 재시작
+//         messageStream.BeginRead(dataBuffer, 0, dataBuffer.Length, OnReadData, null);
+//     }
+
+//     private void HandshakeToClient(int dataSize)
+//     {
+//         string raw = Encoding.UTF8.GetString(dataBuffer);
+
+//         string swk = Regex.Match(raw, "Sec-WebSocket-Key: (.*)").Groups[1].Value.Trim();
+//         string swka = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+//         byte[] swkaSha1 = System.Security.Cryptography.SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(swka));
+//         string swkaSha1Base64 = Convert.ToBase64String(swkaSha1);
+
+//         // HTTP/1.1은 연속된 CR, LF를 라인의 끝을 의미하는 마커로 정의
+//         byte[] response = Encoding.UTF8.GetBytes(
+//             "HTTP/1.1 101 Switching Protocols\r\n" +
+//             "Connection: Upgrade\r\n" +
+//             "Upgrade: websocket\r\n" +
+//             "Sec-WebSocket-Accept: " + swkaSha1Base64 + "\r\n\r\n");
+
+//         //요청 승인 응답 전송
+//         messageStream.Write(response, 0, response.Length);
+//     }
+
+//     private bool ProcessClientRequest(int dataSize)
+//     {
+//         bool fin = (dataBuffer[0] & 0b10000000) != 0;   // 혹시 false일 경우 다음 데이터와 이어주는 처리를 해야 함
+//         bool mask = (dataBuffer[1] & 0b10000000) != 0;  // 클라이언트에서 받는 경우 무조건 true
+//         PayloadDataType opcode = (PayloadDataType)(dataBuffer[0] & 0b00001111); // enum으로 변환
+
+//         int msglen = dataBuffer[1] - 128; // Mask bit가 무조건 1라는 가정하에 수행
+//         int offset = 2;     //데이터 시작점
+//         if (msglen == 126)  //길이 126 이상의 경우
+//         {
+//             msglen = BitConverter.ToInt16(new byte[] { dataBuffer[3], dataBuffer[2] });
+//             offset = 4;
+//         }
+//         else if (msglen == 127)
+//         {
+//             // 이 부분은 구현 안 함. 나중에 필요한 경우 구현
+//             Console.WriteLine("Error: over int16 size");
+//             return true;
+//         }
+
+//         if (mask)
+//         {
+//             byte[] decoded = new byte[msglen];
+//             //마스킹 키 획득
+//             byte[] masks = new byte[4] { dataBuffer[offset], dataBuffer[offset + 1], dataBuffer[offset + 2], dataBuffer[offset + 3] };
+//             offset += 4;
+
+//             for (int i = 0; i < msglen; i++)    //마스크 제거
+//             {
+//                 decoded[i] = (byte)(dataBuffer[offset + i] ^ masks[i % 4]);
+//             }
+
+//             Console.WriteLine(Encoding.UTF8.GetString(decoded));    //데이터 출력
+//             switch (opcode)
+//             {
+//                 case PayloadDataType.Text:
+//                     SendData(Encoding.UTF8.GetBytes("Success!"), PayloadDataType.Text);
+//                     break;
+//                 case PayloadDataType.Binary:
+//                     //Binary는 아무 동작 없음
+//                     break;
+//                 case PayloadDataType.ConnectionClose:
+//                     //받은 요청이 서버에서 보낸 요청에 대한 응답이 아닌 경우에만 실행
+//                     if (State != WebSocketState.CloseSent)
+//                     {
+//                         SendCloseRequest(1000, "Graceful Close");
+//                         State = WebSocketState.Closed;
+//                     }
+//                     Dispose();      // 소켓 닫음
+//                     return false;
+//                 default:
+//                     Console.WriteLine("Unknown Data Type");
+//                     break;
+//             }
+//         }
+//         else
+//         {
+//             // 마스킹 체크 실패
+//             Console.WriteLine("Error: Mask bit not valid");
+//         }
+
+//         return true;
+//     }
+
+//     public void SendData(byte[] data, PayloadDataType opcode)
+//     {
+//         byte[] sendData;
+//         BitArray firstByte = new BitArray(new bool[] {
+//                     // opcode
+//                     opcode == PayloadDataType.Text || opcode == PayloadDataType.Ping,
+//                     opcode == PayloadDataType.Binary || opcode == PayloadDataType.Pong,
+//                     false,
+//                     opcode == PayloadDataType.ConnectionClose || opcode == PayloadDataType.Ping || opcode == PayloadDataType.Pong,
+//                     false,  //RSV3
+//                     false,  //RSV2
+//                     false,  //RSV1
+//                     true,   //Fin
+//                 });
+//         //위 코드는 아래 설명 참조
+
+//         if (data.Length < 126)
+//         {
+//             sendData = new byte[data.Length + 2];
+//             firstByte.CopyTo(sendData, 0);
+//             sendData[1] = (byte)data.Length;    //서버에서는 Mask 비트가 0이어야 함
+//             data.CopyTo(sendData, 2);
+//         }
+//         else
+//         {
+//             // 수신과 마찬가지로 32,767이상의 길이(int16 범위 이상)의 데이터에 대응하지 못함
+//             sendData = new byte[data.Length + 4];
+//             firstByte.CopyTo(sendData, 0);
+//             sendData[1] = 126;
+//             byte[] lengthData = BitConverter.GetBytes((ushort)data.Length);
+//             Array.Copy(lengthData, 0, sendData, 2, 2);
+//             data.CopyTo(sendData, 4);
+//         }
+
+//         messageStream.Write(sendData, 0, sendData.Length);  //클라이언트에 전송
+//     }
+
+//     public void SendCloseRequest(ushort code, string reason)
+//     {
+//         byte[] closeReq = new byte[2 + reason.Length];
+//         BitConverter.GetBytes(code).CopyTo(closeReq, 0);
+//         //왜인지는 알 수 없지만 크롬에서 코드는 자리가 바뀌어야 제대로 인식할 수 있다.
+//         byte temp = closeReq[0];
+//         closeReq[0] = closeReq[1];
+//         closeReq[1] = temp;
+//         Encoding.UTF8.GetBytes(reason).CopyTo(closeReq, 2);
+//         SendData(closeReq, PayloadDataType.ConnectionClose);
+//     }
+
+//     public void Dispose()
+//     {
+//         targetClient.Close();
+//         targetClient.Dispose(); //모든 소켓에 관련된 자원 해제
+//     }
+// }
+
+
+/-------------------------------------------/
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>WebSocket Test</title>
+  <script language="javascript" type="text/javascript">
+
+    var wsUri = "ws://localhost:8081/";
+    var websocket;
+    var output;
+
+    function init() {
+      output = document.getElementById("output");
+      testWebSocket();
+    }
+
+    function testWebSocket() {
+      websocket = new WebSocket(wsUri);
+      websocket.onopen = function (evt) { onOpen(evt) };
+      websocket.onclose = function (evt) { onClose(evt) };
+      websocket.onmessage = function (evt) { onMessage(evt) };
+      websocket.onerror = function (evt) { onError(evt) };
+    }
+
+    function onOpen(evt) {
+      writeToScreen("CONNECTED");
+      doSend("WebSocket rocks");
+    }
+
+    function onClose(evt) {
+      writeToScreen("DISCONNECTED");
+      console.log(evt);
+    }
+
+    function onMessage(evt) {
+      writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data + '</span>');
+    }
+
+    function onError(evt) {
+      writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
+      console.log(evt);
+    }
+
+    function doSend(message) {
+      writeToScreen("SENT: " + message);
+      websocket.send(message);
+    }
+
+    function writeToScreen(message) {
+      var pre = document.createElement("p");
+      pre.style.wordWrap = "break-word";
+      pre.innerHTML = message;
+      output.appendChild(pre);
+    }
+
+    function terminate() {
+      websocket.close();
+    }
+
+    window.addEventListener("load", init, false);
+
+  </script>
+</head>
+
+<body>
+  <h2>WebSocket Test</h2>
+
+  <div id="output"></div>
+  <button onclick="terminate()">Terminate</button>
+  <button onclick="doSend('Again WebSocket')">Send</button>
+  <button onclick="doSend('close')">Close</button>
+</body>
+
+</html>
+
+
+/==========================================/
+//
+// csc wsserver.cs
+// wsserver.exe
+
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Text.RegularExpressions;
+
+class Server {
+    public static void Main() {
+        string ip = "127.0.0.1";
+        int port = 80;
+        var server = new TcpListener(IPAddress.Parse(ip), port);
+
+        server.Start();
+        Console.WriteLine("Server has started on {0}:{1}, Waiting for a connection...", ip, port);
+
+        TcpClient client = server.AcceptTcpClient();
+        Console.WriteLine("A client connected.");
+
+        NetworkStream stream = client.GetStream();
+
+        // enter to an infinite cycle to be able to handle every change in stream
+        while (true) {
+            while (!stream.DataAvailable);
+            while (client.Available < 3); // match against "get"
+
+            byte[] bytes = new byte[client.Available];
+            stream.Read(bytes, 0, client.Available);
+            string s = Encoding.UTF8.GetString(bytes);
+
+            if (Regex.IsMatch(s, "^GET", RegexOptions.IgnoreCase)) {
+                Console.WriteLine("=====Handshaking from client=====\n{0}", s);
+
+                // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
+                // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
+                // 3. Compute SHA-1 and Base64 hash of the new value
+                // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
+                string swk = Regex.Match(s, "Sec-WebSocket-Key: (.*)").Groups[1].Value.Trim();
+                string swka = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+                byte[] swkaSha1 = System.Security.Cryptography.SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(swka));
+                string swkaSha1Base64 = Convert.ToBase64String(swkaSha1);
+
+                // HTTP/1.1 defines the sequence CR LF as the end-of-line marker
+                byte[] response = Encoding.UTF8.GetBytes(
+                    "HTTP/1.1 101 Switching Protocols\r\n" +
+                    "Connection: Upgrade\r\n" +
+                    "Upgrade: websocket\r\n" +
+                    "Sec-WebSocket-Accept: " + swkaSha1Base64 + "\r\n\r\n");
+
+                stream.Write(response, 0, response.Length);
+            } else {
+                bool fin = (bytes[0] & 0b10000000) != 0,
+                    mask = (bytes[1] & 0b10000000) != 0; // must be true, "All messages from the client to the server have this bit set"
+                int opcode = bytes[0] & 0b00001111, // expecting 1 - text message
+                    offset = 2;
+                ulong msglen = bytes[1] & 0b01111111;
+
+                if (msglen == 126) {
+                    // bytes are reversed because websocket will print them in Big-Endian, whereas
+                    // BitConverter will want them arranged in little-endian on windows
+                    msglen = BitConverter.ToUInt16(new byte[] { bytes[3], bytes[2] }, 0);
+                    offset = 4;
+                } else if (msglen == 127) {
+                    // To test the below code, we need to manually buffer larger messages — since the NIC's autobuffering 
+                    // may be too latency-friendly for this code to run (that is, we may have only some of the bytes in this
+                    // websocket frame available through client.Available).  
+                    msglen = BitConverter.ToUInt64(new byte[] { data[9], data[8], data[7], data[6], data[5], data[4], data[3], data[2] });
+                    offset = 10;
+                }
+
+                if (msglen == 0)
+                    Console.WriteLine("msglen == 0");
+                else if (mask) {
+                    byte[] decoded = new byte[msglen];
+                    byte[] masks = new byte[4] { bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3] };
+                    offset += 4;
+
+                    for (ulong i = 0; i < msglen; ++i)
+                        decoded[i] = (byte)(bytes[offset + i] ^ masks[i % 4]);
+
+                    string text = Encoding.UTF8.GetString(decoded);
+                    Console.WriteLine("{0}", text);
+                } else
+                    Console.WriteLine("mask bit not set");
+
+                Console.WriteLine();
+            }
+        }
+    }
+}
+
+
+/===========================================/
+<!doctype html>
+<style>
+    textarea { vertical-align: bottom; }
+    #output { overflow: auto; }
+    #output > p { overflow-wrap: break-word; }
+    #output span { color: blue; }
+    #output span.error { color: red; }
+</style>
+<h2>WebSocket Test</h2>
+<textarea cols=60 rows=6></textarea>
+<button>send</button>
+<div id=output></div>
+<script>
+    // http://www.websocket.org/echo.html
+
+    var button = document.querySelector("button"),
+        output = document.querySelector("#output"),
+        textarea = document.querySelector("textarea"),
+        // wsUri = "ws://echo.websocket.org/",
+        wsUri = "ws://127.0.0.1/",
+        websocket = new WebSocket(wsUri);
+
+    button.addEventListener("click", onClickButton);
+
+    websocket.onopen = function (e) {
+        writeToScreen("CONNECTED");
+        doSend("WebSocket rocks");
+    };
+
+    websocket.onclose = function (e) {
+        writeToScreen("DISCONNECTED");
+    };
+
+    websocket.onmessage = function (e) {
+        writeToScreen("<span>RESPONSE: " + e.data + "</span>");
+    };
+
+    websocket.onerror = function (e) {
+        writeToScreen("<span class=error>ERROR:</span> " + e.data);
+    };
+
+    function doSend(message) {
+        writeToScreen("SENT: " + message);
+        websocket.send(message);
+    }
+
+    function writeToScreen(message) {
+        output.insertAdjacentHTML("afterbegin", "<p>" + message + "</p>");
+    }
+
+    function onClickButton() {
+        var text = textarea.value;
+
+        text && doSend(text);
+        textarea.value = "";
+        textarea.focus();
+    }
+</script>
+
